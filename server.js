@@ -85,6 +85,7 @@ function createEmptyState() {
         totalCoins: 0,
         totalLikes: 0,
         totalGifts: 0,
+        totalComments: 0,
         totalRedistributed: 0,
         totalMarketing: 0,
         totalRewards: 0,
@@ -186,6 +187,7 @@ function recordLike(room, data) {
 function recordChat(room, data) {
     room.state.chatMessages.push({ user: data.user, profilePictureUrl: data.profilePictureUrl || '', comment: data.comment, time: new Date().toISOString() });
     if (room.state.chatMessages.length > 1000) room.state.chatMessages = room.state.chatMessages.slice(-1000);
+    room.state.totalComments = (room.state.totalComments || 0) + 1;
     addViewer(room, data.user);
     saveRoomState(room);
 }
@@ -333,6 +335,7 @@ wss.on('connection', (ws, req) => {
             totalCoins: room.state.totalCoins,
             totalLikes: room.state.totalLikes,
             totalGifts: room.state.totalGifts,
+            totalComments: room.state.totalComments || 0,
             totalRedistributed: room.state.totalRedistributed,
             totalMarketing: room.state.totalMarketing,
             totalRewards: room.state.totalRewards,
@@ -370,7 +373,11 @@ app.get('/api/rooms', (req, res) => {
             connected: room ? !!room.connection : false,
             username: room ? room.username : null,
             clients: room ? room.clients.size : 0,
-            totalCoins: room ? room.state.totalCoins : 0
+            totalCoins: room ? room.state.totalCoins : 0,
+            totalLikes: room ? room.state.totalLikes : 0,
+            totalGifts: room ? room.state.totalGifts : 0,
+            totalComments: room ? (room.state.totalComments || 0) : 0,
+            totalViewers: room ? room.state.viewers.length : 0
         });
     }
     res.json({ rooms: list });
@@ -393,6 +400,36 @@ app.post('/api/rooms/rename', (req, res) => {
     saveRoomsConfig();
     
     res.json({ success: true, message: 'Room renommée', name: cleanName });
+});
+
+// ================= STATS GLOBALES =================
+app.get('/api/stats/global', (req, res) => {
+    let totalCoins = 0, totalLikes = 0, totalGifts = 0, totalComments = 0, totalViewers = 0, liveRooms = 0;
+    const allViewers = new Set();
+
+    for (let i = 1; i <= TOTAL_ROOMS; i++) {
+        const roomId = 'room_' + i;
+        const room = rooms.get(roomId);
+        if (!room) continue;
+        totalCoins += room.state.totalCoins || 0;
+        totalLikes += room.state.totalLikes || 0;
+        totalGifts += room.state.totalGifts || 0;
+        totalComments += room.state.totalComments || 0;
+        if (room.state.viewers) {
+            room.state.viewers.forEach(v => allViewers.add(v));
+        }
+        if (room.connection && room.username) liveRooms++;
+    }
+
+    res.json({
+        liveRooms,
+        totalCoins,
+        totalLikes,
+        totalGifts,
+        totalComments,
+        totalViewers: allViewers.size,
+        totalDollars: (totalCoins / 250).toFixed(2)
+    });
 });
 
 // ================= ROUTES API =================
@@ -563,6 +600,7 @@ app.post('/api/import', (req, res) => {
         if (typeof data.totalCoins === 'number') room.state.totalCoins = data.totalCoins;
         if (typeof data.totalLikes === 'number') room.state.totalLikes = data.totalLikes;
         if (typeof data.totalGifts === 'number') room.state.totalGifts = data.totalGifts;
+        if (typeof data.totalComments === 'number') room.state.totalComments = data.totalComments;
         if (typeof data.totalRedistributed === 'number') room.state.totalRedistributed = data.totalRedistributed;
         if (typeof data.totalMarketing === 'number') room.state.totalMarketing = data.totalMarketing;
         if (typeof data.totalRewards === 'number') room.state.totalRewards = data.totalRewards;
@@ -572,7 +610,7 @@ app.post('/api/import', (req, res) => {
 
         sendToRoom(room, 'RESTORE', null, {
             coinsBoard: room.state.coinsBoard, likesBoard: room.state.likesBoard, redistributionBoard: room.state.redistributionBoard,
-            totalCoins: room.state.totalCoins, totalLikes: room.state.totalLikes, totalGifts: room.state.totalGifts,
+            totalCoins: room.state.totalCoins, totalLikes: room.state.totalLikes, totalGifts: room.state.totalGifts, totalComments: room.state.totalComments || 0,
             totalRedistributed: room.state.totalRedistributed, totalMarketing: room.state.totalMarketing, totalRewards: room.state.totalRewards, totalWithdrawals: room.state.totalWithdrawals,
             marketingHistory: room.state.marketingHistory, rewardsHistory: room.state.rewardsHistory, withdrawalsHistory: room.state.withdrawalsHistory,
             viewers: room.state.viewers, chatMessages: room.state.chatMessages.slice(-200), currentUsername: room.username
@@ -631,6 +669,19 @@ body{background:var(--bg);color:var(--txt);font-family:'Outfit',sans-serif;min-h
 .stat-label{font-size:11px;color:var(--txt2);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
 .refresh-btn{display:block;margin:30px auto 0;padding:12px 30px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;color:var(--txt2);font-family:'Outfit',sans-serif;font-size:13px;cursor:pointer;transition:.2s}
 .refresh-btn:hover{background:rgba(255,255,255,.1);color:var(--txt)}
+.global-footer{position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(10,10,15,.95);backdrop-filter:blur(20px);border-top:1px solid var(--border);padding:14px 28px}
+.global-inner{max-width:900px;margin:0 auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center}
+.global-title{font-weight:700;font-size:12px;color:var(--txt2);text-transform:uppercase;letter-spacing:1px;margin-right:8px;display:flex;align-items:center;gap:6px}
+.global-title .pulse-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 1.5s infinite}
+.gs{display:flex;align-items:center;gap:6px;padding:8px 14px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;transition:all .3s}
+.gs:hover{border-color:rgba(37,244,238,.3);background:rgba(37,244,238,.04)}
+.gs-icon{font-size:14px}
+.gs-val{font-size:16px;font-weight:800;font-family:'Outfit',sans-serif;transition:color .3s}
+.gs-label{font-size:10px;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px}
+.gs-val.coins{color:var(--gold)}.gs-val.likes{color:var(--pk)}.gs-val.comments{color:var(--cy)}.gs-val.viewers{color:#a78bfa}.gs-val.gifts{color:#c084fc}.gs-val.live{color:var(--green)}.gs-val.dollars{color:var(--green)}
+.gs-flash{animation:gsFlash .5s ease}
+@keyframes gsFlash{0%{transform:scale(1)}50%{transform:scale(1.1)}100%{transform:scale(1)}}
+body{padding-bottom:80px}
 </style>
 </head>
 <body>
@@ -642,6 +693,18 @@ body{background:var(--bg);color:var(--txt);font-family:'Outfit',sans-serif;min-h
     <div class="rooms-grid" id="roomsGrid"></div>
     <div class="stats" id="stats"></div>
     <button class="refresh-btn" onclick="loadRooms()">🔄 Rafraîchir</button>
+</div>
+<div class="global-footer">
+    <div class="global-inner">
+        <div class="global-title"><span class="pulse-dot"></span> STATS GLOBALES</div>
+        <div class="gs"><span class="gs-icon">🟢</span><div><div class="gs-val live" id="gLive">0</div><div class="gs-label">Live</div></div></div>
+        <div class="gs"><span class="gs-icon">💰</span><div><div class="gs-val coins" id="gCoins">0</div><div class="gs-label">Pièces</div></div></div>
+        <div class="gs"><span class="gs-icon">💵</span><div><div class="gs-val dollars" id="gDollars">$0</div><div class="gs-label">Dollars</div></div></div>
+        <div class="gs"><span class="gs-icon">❤️</span><div><div class="gs-val likes" id="gLikes">0</div><div class="gs-label">Likes</div></div></div>
+        <div class="gs"><span class="gs-icon">💬</span><div><div class="gs-val comments" id="gComments">0</div><div class="gs-label">Commentaires</div></div></div>
+        <div class="gs"><span class="gs-icon">🎁</span><div><div class="gs-val gifts" id="gGifts">0</div><div class="gs-label">Cadeaux</div></div></div>
+        <div class="gs"><span class="gs-icon">👥</span><div><div class="gs-val viewers" id="gViewers">0</div><div class="gs-label">Viewers</div></div></div>
+    </div>
 </div>
 <script>
 var editingRoom = null;
@@ -741,8 +804,37 @@ function enterRoom(roomId) {
     window.location.href = '/dashboard?room=' + roomId;
 }
 
+var prevGlobal = {};
+
+function loadGlobalStats() {
+    fetch('/api/stats/global').then(function(r) { return r.json(); }).then(function(data) {
+        updateGS('gLive', data.liveRooms);
+        updateGS('gCoins', data.totalCoins);
+        updateGS('gDollars', '$' + Math.floor(data.totalDollars || 0));
+        updateGS('gLikes', data.totalLikes);
+        updateGS('gComments', data.totalComments);
+        updateGS('gGifts', data.totalGifts);
+        updateGS('gViewers', data.totalViewers);
+    }).catch(function() {});
+}
+
+function updateGS(id, val) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var display = (typeof val === 'string') ? val : formatNum(val);
+    if (el.textContent !== display) {
+        el.textContent = display;
+        el.classList.remove('gs-flash');
+        void el.offsetWidth;
+        el.classList.add('gs-flash');
+    }
+    prevGlobal[id] = val;
+}
+
 loadRooms();
+loadGlobalStats();
 setInterval(loadRooms, 10000);
+setInterval(loadGlobalStats, 5000);
 </script>
 </body>
 </html>`;
