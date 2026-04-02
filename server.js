@@ -606,6 +606,26 @@ app.get('/connect', (req, res) => {
     else { res.status(400).json({ success: false, message: "Pseudo manquant." }); }
 });
 
+app.get('/disconnect', (req, res) => {
+    if (currentConnection) {
+        isManualDisconnect = true;
+        clearTimeout(reconnectTimer);
+        try {
+            currentConnection.disconnect();
+        } catch (e) {
+            console.log("Erreur déconnexion:", e.message);
+        }
+        currentConnection = null;
+        currentUsername = null;
+        reconnectAttempts = 0;
+        sendToClient('INFO', 'STREAM_ENDED', {});
+        console.log('🔌 Déconnecté manuellement');
+        res.json({ success: true, message: 'Déconnecté du live' });
+    } else {
+        res.json({ success: false, message: 'Pas de connexion active' });
+    }
+});
+
 // ================= DASHBOARD HTML =================
 const DASHBOARD_HTML = `<!DOCTYPE html>
 <html lang="fr">
@@ -633,6 +653,8 @@ body::before{content:'';position:fixed;top:-50%;left:-50%;width:200%;height:200%
 .cz input::placeholder{color:var(--txt3)}
 .btn-co{padding:10px 22px;border:none;border-radius:10px;font-family:'Outfit',sans-serif;font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.8px;cursor:pointer;transition:.3s;background:linear-gradient(135deg,var(--pk),#d6164a);color:#fff;box-shadow:0 4px 20px var(--pk-glow)}
 .btn-co:hover{transform:translateY(-1px)}.btn-co:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-dc{padding:10px 22px;border:none;border-radius:10px;font-family:'Outfit',sans-serif;font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.8px;cursor:pointer;transition:.3s;background:linear-gradient(135deg,#6b7280,#4b5563);color:#fff;box-shadow:0 4px 20px rgba(107,114,128,0.3)}
+.btn-dc:hover{transform:translateY(-1px);background:linear-gradient(135deg,#ef4444,#dc2626);box-shadow:0 4px 20px rgba(239,68,68,0.3)}.btn-dc:disabled{opacity:.5;cursor:not-allowed;transform:none}
 .badge{display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;background:rgba(254,44,85,.1);color:var(--pk);border:1px solid rgba(254,44,85,.2);white-space:nowrap;transition:.4s}
 .badge.live{background:rgba(37,244,238,.1);color:var(--cy);border-color:rgba(37,244,238,.25);animation:glow 3s ease-in-out infinite}
 .badge.reco{background:rgba(255,165,0,.1);color:#ffa500;border-color:rgba(255,165,0,.25);animation:pulse 1s ease-in-out infinite}
@@ -833,6 +855,7 @@ body::before{content:'';position:fixed;top:-50%;left:-50%;width:200%;height:200%
         <div class="badge" id="badge"><span id="stxt">Déconnecté</span></div>
         <input type="text" id="username" placeholder="@pseudo_en_live" spellcheck="false"/>
         <button class="btn-co" id="btnCo" onclick="doConnect()">Connexion</button>
+        <button class="btn-dc" id="btnDc" onclick="doDisconnect()" style="display:none;">Déconnexion</button>
     </div>
 </div>
 
@@ -1273,10 +1296,15 @@ function renderBalance(){
 // CONNECTION
 function setConn(on,user){
     S.connected=on;
-    var dot=document.getElementById('dot'),badge=document.getElementById('badge'),st=document.getElementById('stxt'),btn=document.getElementById('btnCo');
+    var dot=document.getElementById('dot'),badge=document.getElementById('badge'),st=document.getElementById('stxt'),btnCo=document.getElementById('btnCo'),btnDc=document.getElementById('btnDc');
     badge.classList.remove('reco');
-    if(on){dot.classList.add('on');badge.classList.add('live');st.textContent='🔴 LIVE @'+user;btn.textContent='Connecté';}
-    else{dot.classList.remove('on');badge.classList.remove('live');st.textContent='Déconnecté';btn.textContent='Connexion';btn.disabled=false;}
+    if(on){
+        dot.classList.add('on');badge.classList.add('live');st.textContent='🔴 LIVE @'+user;
+        btnCo.style.display='none';btnDc.style.display='inline-block';btnDc.disabled=false;
+    } else {
+        dot.classList.remove('on');badge.classList.remove('live');st.textContent='Déconnecté';
+        btnCo.style.display='inline-block';btnCo.textContent='Connexion';btnCo.disabled=false;btnDc.style.display='none';
+    }
 }
 function setReco(a,m){document.getElementById('badge').classList.remove('live');document.getElementById('badge').classList.add('reco');document.getElementById('stxt').textContent='🔄 '+a+'/'+m;}
 
@@ -1288,6 +1316,17 @@ function doConnect(){
         if(!d.success){setConn(false);document.getElementById('stxt').textContent=d.message;}
     }).catch(function(){setConn(false);document.getElementById('stxt').textContent='Erreur';btn.disabled=false;btn.textContent='Connexion';});
 }
+
+function doDisconnect(){
+    var btn=document.getElementById('btnDc');
+    btn.disabled=true;btn.textContent='Déconnexion...';
+    fetch('/disconnect').then(function(r){return r.json()}).then(function(d){
+        if(d.success){toast('success','🔌 Déconnecté du live');}
+        else{toast('error',d.message||'Erreur');}
+        setConn(false);
+    }).catch(function(){toast('error','Erreur');setConn(false);});
+}
+
 document.getElementById('username').addEventListener('keydown',function(e){if(e.key==='Enter')doConnect();});
 
 // EXPORT MENUS
