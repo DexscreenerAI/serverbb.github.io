@@ -1577,7 +1577,7 @@ initWS();
 </html>`;
 
 // ================= DÉMARRAGE =================
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
     console.log('=========================================');
     if (IS_RAILWAY) {
         console.log('🚀 SERVEUR RAILWAY PRÊT');
