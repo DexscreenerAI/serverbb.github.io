@@ -26,12 +26,12 @@ function createSniperEngine(options = {}) {
   // ═══ STATE ═══
   const INITIAL_BALANCE = 10000;
   const POSITION_SIZE = 100;
-  const MIN_SCORE = 85;           // Raised from 80 - filter weak trades
-  const MAX_POSITIONS = 15;        // Max concurrent positions
-  const CHAINS = ['solana'];
-  const MIN_LIQUIDITY = 30000;     // Raised from 20K - anti-rug
-  const MIN_MC = 80000;            // Raised from 50K - anti-rug
-  const MAX_MC = 5000000;
+  const MIN_SCORE = 85;
+const MAX_POSITIONS = 15;
+const CHAINS = ['solana'];
+const MIN_LIQUIDITY = 30000;
+const MIN_MC = 80000;
+const MAX_MC = 5000000;
 
   let balance = INITIAL_BALANCE;
   let totalPnL = 0, securedPnL = 0, totalTrades = 0, wins = 0;
