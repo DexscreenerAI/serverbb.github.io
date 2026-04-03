@@ -6,7 +6,6 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const url = require('url');
-const { createSniperEngine } = require('./sniper-engine');
 
 // ================= CONFIGURATION =================
 const PORT = process.env.PORT || 8832;
@@ -99,11 +98,11 @@ function createEmptyState() {
 
 function getRoom(roomId) {
     if (!roomId) return null;
-    
+
     // Vérifier que c'est une room valide (room_1 à room_20)
     const match = roomId.match(/^room_(\d+)$/);
     if (!match || parseInt(match[1]) < 1 || parseInt(match[1]) > TOTAL_ROOMS) return null;
-    
+
     if (!rooms.has(roomId)) {
         console.log('🏠 Room activée:', roomId);
         const room = {
@@ -122,7 +121,7 @@ function getRoom(roomId) {
         loadRoomState(room);
         rooms.set(roomId, room);
     }
-    
+
     const room = rooms.get(roomId);
     room.lastActivity = new Date();
     return room;
@@ -301,49 +300,10 @@ function connectToTikTok(room, username, isReconnect = false) {
     room.connection.on('error', (err) => { console.error("⚠️ " + room.id + " erreur:", err.message); });
 }
 
-// ================= SNIPER ENGINE =================
-const sniperClients = new Set();
-
-const sniperEngine = createSniperEngine({
-    broadcastFn: (type, action, data) => {
-        const msg = JSON.stringify({ type, action, data });
-        for (const client of sniperClients) {
-            if (client.readyState === WebSocket.OPEN) {
-                try { client.send(msg); } catch (e) { /* silent */ }
-            }
-        }
-    },
-    dataDir: DATA_DIR,
-    aiApiUrl: 'https://dexscreener-telegram-bot-production.up.railway.app/api/chat'
-});
-
-// Auto-start sniper on boot
-setTimeout(() => {
-    sniperEngine.start();
-    console.log('🎯 Sniper engine auto-started');
-}, 3000);
-
-// Sniper API endpoint
-app.get('/api/sniper/state', (req, res) => {
-    res.json(sniperEngine.getState());
-});
-
 // ================= WEBSOCKET =================
 wss.on('connection', (ws, req) => {
     const params = url.parse(req.url, true).query;
     const roomId = params.room;
-
-    // ═══ SNIPER ROOM ═══
-    if (roomId === 'sniper') {
-        sniperClients.add(ws);
-        console.log('🎯 Sniper client connected (' + sniperClients.size + ')');
-        ws.send(JSON.stringify({ type: 'STATE', action: 'FULL_STATE', data: sniperEngine.getState() }));
-        ws.on('close', () => {
-            sniperClients.delete(ws);
-            console.log('🎯 Sniper client disconnected (' + sniperClients.size + ')');
-        });
-        return;
-    }
 
     if (!roomId) {
         ws.send(JSON.stringify({ type: 'ERROR', message: 'Room ID manquant' }));
@@ -357,7 +317,7 @@ wss.on('connection', (ws, req) => {
         ws.close();
         return;
     }
-    
+
     room.clients.add(ws);
     console.log('🔌 ' + roomId + ' : client connecté (' + room.clients.size + ')');
 
@@ -413,6 +373,7 @@ app.get('/api/rooms', (req, res) => {
             connected: room ? !!room.connection : false,
             username: room ? room.username : null,
             clients: room ? room.clients.size : 0,
+            totalCoins: room ? room.state.totalCoins : 0
             totalCoins: room ? room.state.totalCoins : 0,
             totalLikes: room ? room.state.totalLikes : 0,
             totalGifts: room ? room.state.totalGifts : 0,
@@ -426,19 +387,19 @@ app.get('/api/rooms', (req, res) => {
 app.post('/api/rooms/rename', (req, res) => {
     const { roomId, name } = req.body;
     if (!roomId || !name) return res.status(400).json({ success: false, message: 'roomId et name requis' });
-    
+
     const match = roomId.match(/^room_(\d+)$/);
     if (!match || parseInt(match[1]) < 1 || parseInt(match[1]) > TOTAL_ROOMS) {
         return res.status(400).json({ success: false, message: 'Room invalide' });
     }
-    
+
     const cleanName = name.toString().trim().substring(0, 30);
     if (!cleanName) return res.status(400).json({ success: false, message: 'Nom invalide' });
-    
+
     roomsConfig.rooms[roomId] = roomsConfig.rooms[roomId] || {};
     roomsConfig.rooms[roomId].name = cleanName;
     saveRoomsConfig();
-    
+
     res.json({ success: true, message: 'Room renommée', name: cleanName });
 });
 
@@ -477,10 +438,10 @@ app.get('/connect', (req, res) => {
     const username = req.query.username;
     const roomId = req.query.room;
     const room = getRoom(roomId);
-    
+
     if (!room) return res.status(400).json({ success: false, message: "Room invalide" });
     if (!username) return res.status(400).json({ success: false, message: "Pseudo manquant" });
-    
+
     connectToTikTok(room, username);
     res.json({ success: true, message: 'Connexion lancée vers @' + username });
 });
@@ -488,9 +449,9 @@ app.get('/connect', (req, res) => {
 app.get('/disconnect', (req, res) => {
     const roomId = req.query.room;
     const room = getRoom(roomId);
-    
+
     if (!room) return res.status(400).json({ success: false, message: "Room invalide" });
-    
+
     if (room.connection) {
         room.isManualDisconnect = true;
         clearTimeout(room.reconnectTimer);
@@ -510,7 +471,7 @@ app.post('/api/redistribute', (req, res) => {
     const room = getRoom(roomId);
     if (!room) return res.status(400).json({ success: false, message: 'Room invalide' });
     if (!user || !amount || amount <= 0) return res.status(400).json({ success: false, message: 'Données invalides' });
-    
+
     const uid = user.toString().replace('@', '').trim();
     if (!room.state.redistributionBoard[uid]) {
         const fromCoins = room.state.coinsBoard[uid];
@@ -532,7 +493,7 @@ app.post('/api/marketing', (req, res) => {
     if (!room) return res.status(400).json({ success: false, message: 'Room invalide' });
     const parsed = parseInt(amount);
     if (!parsed || parsed <= 0) return res.status(400).json({ success: false, message: 'Montant invalide' });
-    
+
     room.state.marketingHistory.push({ amount: parsed, comment: comment || '', mktType: mktType || 'Manuel', date: new Date().toISOString() });
     room.state.totalMarketing += parsed;
     saveRoomState(room);
@@ -547,7 +508,7 @@ app.post('/api/rewards', (req, res) => {
     const parsed = parseInt(amount);
     if (!parsed || parsed <= 0) return res.status(400).json({ success: false, message: 'Montant invalide' });
     if (!reason || !reason.trim()) return res.status(400).json({ success: false, message: 'Raison requise' });
-    
+
     room.state.rewardsHistory.push({ amount: parsed, reason: reason.trim(), date: new Date().toISOString() });
     room.state.totalRewards += parsed;
     saveRoomState(room);
@@ -562,7 +523,7 @@ app.post('/api/withdrawals', (req, res) => {
     const parsed = parseInt(amount);
     if (!parsed || parsed <= 0) return res.status(400).json({ success: false, message: 'Montant invalide' });
     if (!reason || !reason.trim()) return res.status(400).json({ success: false, message: 'Raison requise' });
-    
+
     room.state.withdrawalsHistory.push({ amount: parsed, reason: reason.trim(), date: new Date().toISOString() });
     room.state.totalWithdrawals += parsed;
     saveRoomState(room);
@@ -614,7 +575,7 @@ app.post('/api/reset', (req, res) => {
     const roomId = req.body.room;
     const room = getRoom(roomId);
     if (!room) return res.status(400).json({ success: false, message: 'Room invalide' });
-    
+
     const sessions = room.state.sessions;
     room.state = createEmptyState();
     room.state.sessions = sessions;
@@ -627,7 +588,7 @@ app.post('/api/import', (req, res) => {
     const roomId = req.body.room || req.query.room;
     const room = getRoom(roomId);
     if (!room) return res.status(400).json({ success: false, message: 'Room invalide' });
-    
+
     try {
         const data = req.body;
         if (data.coinsBoard) room.state.coinsBoard = data.coinsBoard;
@@ -650,6 +611,7 @@ app.post('/api/import', (req, res) => {
 
         sendToRoom(room, 'RESTORE', null, {
             coinsBoard: room.state.coinsBoard, likesBoard: room.state.likesBoard, redistributionBoard: room.state.redistributionBoard,
+            totalCoins: room.state.totalCoins, totalLikes: room.state.totalLikes, totalGifts: room.state.totalGifts,
             totalCoins: room.state.totalCoins, totalLikes: room.state.totalLikes, totalGifts: room.state.totalGifts, totalComments: room.state.totalComments || 0,
             totalRedistributed: room.state.totalRedistributed, totalMarketing: room.state.totalMarketing, totalRewards: room.state.totalRewards, totalWithdrawals: room.state.totalWithdrawals,
             marketingHistory: room.state.marketingHistory, rewardsHistory: room.state.rewardsHistory, withdrawalsHistory: room.state.withdrawalsHistory,
