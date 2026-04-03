@@ -26,8 +26,12 @@ function createSniperEngine(options = {}) {
   // ═══ STATE ═══
   const INITIAL_BALANCE = 10000;
   const POSITION_SIZE = 100;
-  const MIN_SCORE = 80;
+  const MIN_SCORE = 85;           // Raised from 80 - filter weak trades
+  const MAX_POSITIONS = 15;        // Max concurrent positions
   const CHAINS = ['solana'];
+  const MIN_LIQUIDITY = 30000;     // Raised from 20K - anti-rug
+  const MIN_MC = 80000;            // Raised from 50K - anti-rug
+  const MAX_MC = 5000000;
 
   let balance = INITIAL_BALANCE;
   let totalPnL = 0, securedPnL = 0, totalTrades = 0, wins = 0;
@@ -148,13 +152,14 @@ function createSniperEngine(options = {}) {
     if (buyRatio1h >= 85) score -= 8;
     else if (buyRatio1h >= 40 && buyRatio1h < 60) score += 5;
 
-    // Liquidity
+    // Liquidity (stricter - anti rug)
     const liqRatio = mc > 0 ? (liq / mc) * 100 : 0;
-    if (liq < 10000) return 0;
-    if (liq < 15000) score -= 25;
-    else if (liq < 20000) score -= 15;
-    else if (liq < 30000) score -= 8;
-    if (liq >= 50000) score += 10;
+    if (liq < 15000) return 0;          // Was 10K - instant reject
+    if (liq < 20000) score -= 30;       // Very risky
+    else if (liq < 30000) score -= 15;  // Risky
+    else if (liq < 40000) score -= 5;   // Slightly risky
+    if (liq >= 60000) score += 10;      // Good
+    if (liq >= 100000) score += 5;      // Very good
     if (liqRatio >= 8 && liqRatio <= 20) score += 10;
     else if (liqRatio >= 5 && liqRatio <= 25) score += 5;
     else if (liqRatio < 3) score -= 15;
@@ -194,6 +199,7 @@ function createSniperEngine(options = {}) {
   // ═══ TRADE EXECUTION ═══
   function executeTrade(pair, score, tradeType = 'QUICK') {
     if (balance < POSITION_SIZE) return;
+    if (positions.length >= MAX_POSITIONS) return;  // Limit positions
     const symbol = pair.baseToken?.symbol || 'UNKNOWN';
     const chain = pair.chainId;
     const address = pair.baseToken?.address;
@@ -202,6 +208,8 @@ function createSniperEngine(options = {}) {
     if (entryPrice === 0 || !address) return;
     if (positions.find(p => p.address === address || p.symbol === symbol)) return;
     if (history.find(h => h.address === address)) return;
+    // Block symbols that already lost money
+    if (history.find(h => h.symbol === symbol && h.pnl < -20)) return;
 
     // Honeypot check
     const b5 = pair.txns?.m5?.buys || 0, s5 = pair.txns?.m5?.sells || 0;
@@ -494,7 +502,7 @@ function createSniperEngine(options = {}) {
           const mc = parseFloat(pair.marketCap) || 0;
           const liq = parseFloat(pair.liquidity?.usd) || 0;
           const liqRatio = mc > 0 ? (liq / mc) * 100 : 0;
-          if (mc >= 50000 && mc <= 5000000 && liq >= 20000 && liqRatio >= 8) {
+          if (mc >= MIN_MC && mc <= MAX_MC && liq >= MIN_LIQUIDITY && liqRatio >= 8) {
             pair._source = cand.source; pair._boost = cand.boost;
             enriched.push(pair);
           }
