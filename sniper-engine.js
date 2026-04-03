@@ -198,7 +198,7 @@ const MAX_MC = 5000000;
 
   // ═══ TRADE EXECUTION ═══
   function executeTrade(pair, score, tradeType = 'QUICK') {
-    if (balance < POSITION_SIZE) return;
+ if (positions.length >= MAX_POSITIONS) return;
     if (positions.length >= MAX_POSITIONS) return;  // Limit positions
     const symbol = pair.baseToken?.symbol || 'UNKNOWN';
     const chain = pair.chainId;
