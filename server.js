@@ -373,7 +373,6 @@ app.get('/api/rooms', (req, res) => {
             connected: room ? !!room.connection : false,
             username: room ? room.username : null,
             clients: room ? room.clients.size : 0,
-            totalCoins: room ? room.state.totalCoins : 0
             totalCoins: room ? room.state.totalCoins : 0,
             totalLikes: room ? room.state.totalLikes : 0,
             totalGifts: room ? room.state.totalGifts : 0,
