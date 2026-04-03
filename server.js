@@ -6,6 +6,7 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const url = require('url');
+const { createSniperEngine } = require('./sniper-engine');
 
 // ================= CONFIGURATION =================
 const PORT = process.env.PORT || 8832;
@@ -300,17 +301,56 @@ function connectToTikTok(room, username, isReconnect = false) {
     room.connection.on('error', (err) => { console.error("⚠️ " + room.id + " erreur:", err.message); });
 }
 
+// ================= SNIPER ENGINE =================
+const sniperClients = new Set();
+
+const sniperEngine = createSniperEngine({
+    broadcastFn: (type, action, data) => {
+        const msg = JSON.stringify({ type, action, data });
+        for (const client of sniperClients) {
+            if (client.readyState === WebSocket.OPEN) {
+                try { client.send(msg); } catch (e) { /* silent */ }
+            }
+        }
+    },
+    dataDir: DATA_DIR,
+    aiApiUrl: 'https://dexscreener-telegram-bot-production.up.railway.app/api/chat'
+});
+
+// Auto-start sniper on boot
+setTimeout(() => {
+    sniperEngine.start();
+    console.log('🎯 Sniper engine auto-started');
+}, 3000);
+
+// Sniper API endpoint
+app.get('/api/sniper/state', (req, res) => {
+    res.json(sniperEngine.getState());
+});
+
 // ================= WEBSOCKET =================
 wss.on('connection', (ws, req) => {
     const params = url.parse(req.url, true).query;
     const roomId = params.room;
-    
+
+    // ═══ SNIPER ROOM ═══
+    if (roomId === 'sniper') {
+        sniperClients.add(ws);
+        console.log('🎯 Sniper client connected (' + sniperClients.size + ')');
+        ws.send(JSON.stringify({ type: 'STATE', action: 'FULL_STATE', data: sniperEngine.getState() }));
+        ws.on('close', () => {
+            sniperClients.delete(ws);
+            console.log('🎯 Sniper client disconnected (' + sniperClients.size + ')');
+        });
+        return;
+    }
+
     if (!roomId) {
         ws.send(JSON.stringify({ type: 'ERROR', message: 'Room ID manquant' }));
         ws.close();
         return;
     }
-    
+
     const room = getRoom(roomId);
     if (!room) {
         ws.send(JSON.stringify({ type: 'ERROR', message: 'Room invalide' }));
