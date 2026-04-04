@@ -815,8 +815,20 @@ function saveRoomName(roomId) {
     });
 }
 
+var PROTECTED_ROOMS = { 'room_1': '0104', 'room_2': '1986', 'room_3': '2211', 'room_13': '0102' };
+
 function enterRoom(roomId) {
-    window.location.href = '/dashboard?room=' + roomId;
+    if (PROTECTED_ROOMS[roomId]) {
+        var pin = prompt('🔒 Code PIN requis pour ' + roomId + ' :');
+        if (pin === null) return;
+        if (pin !== PROTECTED_ROOMS[roomId]) {
+            alert('❌ Code PIN incorrect');
+            return;
+        }
+    }
+    var url = '/dashboard?room=' + roomId;
+    if (PROTECTED_ROOMS[roomId]) url += '&pin=' + encodeURIComponent(pin);
+    window.location.href = url;
 }
 
 var prevGlobal = {};
@@ -858,6 +870,7 @@ setInterval(loadGlobalStats, 5000);
 app.get('/dashboard', (req, res) => {
     const roomId = req.query.room;
     if (!roomId) return res.redirect('/');
+    if (ROOM_PINS[roomId] && req.query.pin !== ROOM_PINS[roomId]) return res.redirect('/');
     res.send(DASHBOARD_HTML);
 });
 
