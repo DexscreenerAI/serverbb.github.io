@@ -15,7 +15,7 @@ const DATA_DIR = path.join(BASE_DIR, 'data');
 const MAX_RECONNECT_ATTEMPTS = 4;
 
 // PINs de protection par room
-const ROOM_PINS = { 'room_1': '0104', 'room_2': '1986', 'room_3': '2211', 'room_13': '0102' };
+const ROOM_PINS = { 'room_1': '0104', 'room_2': '1986', 'room_3': '2211', 'room_13': '0102', 'room_15': '0095' };
 const RECONNECT_DELAY_MS = 5000;
 const TOTAL_ROOMS = 20;
 
@@ -815,7 +815,7 @@ function saveRoomName(roomId) {
     });
 }
 
-var PROTECTED_ROOMS = { 'room_1': '0104', 'room_2': '1986', 'room_3': '2211', 'room_13': '0102' };
+var PROTECTED_ROOMS = { 'room_1': '0104', 'room_2': '1986', 'room_3': '2211', 'room_13': '0102', 'room_15': '0095' };
 
 function enterRoom(roomId) {
     if (PROTECTED_ROOMS[roomId]) {
