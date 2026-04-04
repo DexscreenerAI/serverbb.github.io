@@ -314,16 +314,6 @@ wss.on('connection', (ws, req) => {
         return;
     }
 
-    // Vérification PIN
-    if (ROOM_PINS[roomId]) {
-        const pin = params.pin;
-        if (pin !== ROOM_PINS[roomId]) {
-            ws.send(JSON.stringify({ type: 'ERROR', action: 'PIN_REQUIRED', message: 'Code PIN requis ou incorrect' }));
-            ws.close();
-            return;
-        }
-    }
-
     const room = getRoom(roomId);
     if (!room) {
         ws.send(JSON.stringify({ type: 'ERROR', message: 'Room invalide' }));
@@ -453,7 +443,6 @@ app.get('/connect', (req, res) => {
 
     if (!room) return res.status(400).json({ success: false, message: "Room invalide" });
     if (!username) return res.status(400).json({ success: false, message: "Pseudo manquant" });
-    if (ROOM_PINS[roomId] && req.query.pin !== ROOM_PINS[roomId]) return res.status(403).json({ success: false, message: "Code PIN incorrect" });
 
     connectToTikTok(room, username);
     res.json({ success: true, message: 'Connexion lancée vers @' + username });
