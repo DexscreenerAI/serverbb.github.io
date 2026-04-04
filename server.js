@@ -1020,12 +1020,14 @@ body{background:var(--bg);color:var(--txt);font-family:'Outfit',sans-serif;min-h
 <script>
 var params=new URLSearchParams(window.location.search);
 var ROOM=params.get('room');
+var PIN=params.get('pin')||'';
 if(!ROOM){window.location.href='/';}
+document.addEventListener('DOMContentLoaded',function(){document.getElementById('roomBadge').textContent=ROOM;});
 
 var S={coinsBoard:{},likesBoard:{},redistributionBoard:{},marketingHistory:[],rewardsHistory:[],withdrawalsHistory:[],chatMessages:[],totalCoins:0,totalLikes:0,totalGifts:0,totalRedistributed:0,totalMarketing:0,totalRewards:0,totalWithdrawals:0,viewers:new Set(),filters:{coins:'',likes:'',redist:''},selectedUser:null,roomName:''};
 
 var ws,wrt;
-function initWS(){var p=location.protocol==='https:'?'wss://':'ws://';ws=new WebSocket(p+location.host+'/?room='+ROOM);ws.onmessage=function(e){try{handle(JSON.parse(e.data))}catch(x){}};ws.onclose=function(){clearTimeout(wrt);wrt=setTimeout(initWS,3000)};ws.onerror=function(){ws.close()};}
+function initWS(){var p=location.protocol==='https:'?'wss://':'ws://';ws=new WebSocket(p+location.host+'/?room='+ROOM+'&pin='+encodeURIComponent(PIN));ws.onmessage=function(e){try{handle(JSON.parse(e.data))}catch(x){}};ws.onclose=function(){clearTimeout(wrt);wrt=setTimeout(initWS,3000)};ws.onerror=function(){ws.close()};}
 
 function handle(m){
     if(m.type==='RESTORE'&&m.data){var d=m.data;S.roomName=d.roomName||ROOM;document.getElementById('roomBadge').textContent=S.roomName;S.coinsBoard=d.coinsBoard||{};S.likesBoard=d.likesBoard||{};S.redistributionBoard=d.redistributionBoard||{};S.totalCoins=d.totalCoins||0;S.totalLikes=d.totalLikes||0;S.totalGifts=d.totalGifts||0;S.totalRedistributed=d.totalRedistributed||0;S.totalMarketing=d.totalMarketing||0;S.marketingHistory=d.marketingHistory||[];S.totalRewards=d.totalRewards||0;S.rewardsHistory=d.rewardsHistory||[];S.totalWithdrawals=d.totalWithdrawals||0;S.withdrawalsHistory=d.withdrawalsHistory||[];S.viewers=new Set(d.viewers||[]);if(d.chatMessages){S.chatMessages=d.chatMessages.map(function(c){return{user:c.user,profilePictureUrl:c.profilePictureUrl||'',comment:c.comment,time:c.time?new Date(c.time).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):''};});renderChat();}if(d.currentUsername)document.getElementById('username').value=d.currentUsername;updStats();renderAll();return;}
@@ -1066,7 +1068,7 @@ function filterLB(t,v){S.filters[t]=v;renderLB(t);}
 
 function setConn(on,user){var dot=document.getElementById('dot'),badge=document.getElementById('badge'),st=document.getElementById('stxt'),btnCo=document.getElementById('btnCo'),btnDc=document.getElementById('btnDc');if(on){dot.classList.add('on');badge.classList.add('live');st.textContent='🔴 @'+user;btnCo.style.display='none';btnDc.style.display='inline-block';}else{dot.classList.remove('on');badge.classList.remove('live');st.textContent='Déconnecté';btnCo.style.display='inline-block';btnCo.textContent='Connexion';btnCo.disabled=false;btnDc.style.display='none';}}
 
-function doConnect(){var inp=document.getElementById('username'),btn=document.getElementById('btnCo'),u=inp.value.trim();if(!u){inp.focus();return;}btn.disabled=true;btn.textContent='...';fetch('/connect?username='+encodeURIComponent(u)+'&room='+ROOM).then(function(r){return r.json()}).then(function(d){if(!d.success){setConn(false);document.getElementById('stxt').textContent='Erreur';}}).catch(function(){setConn(false);btn.disabled=false;btn.textContent='Connexion';});}
+function doConnect(){var inp=document.getElementById('username'),btn=document.getElementById('btnCo'),u=inp.value.trim();if(!u){inp.focus();return;}btn.disabled=true;btn.textContent='...';fetch('/connect?username='+encodeURIComponent(u)+'&room='+ROOM+'&pin='+encodeURIComponent(PIN)).then(function(r){return r.json()}).then(function(d){if(!d.success){setConn(false);document.getElementById('stxt').textContent='Erreur';}}).catch(function(){setConn(false);btn.disabled=false;btn.textContent='Connexion';});}
 function doDisconnect(){fetch('/disconnect?room='+ROOM).then(function(r){return r.json()}).then(function(){setConn(false);});}
 document.getElementById('username').addEventListener('keydown',function(e){if(e.key==='Enter')doConnect();});
 
