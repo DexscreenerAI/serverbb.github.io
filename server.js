@@ -13,6 +13,9 @@ const IS_RAILWAY = !!process.env.RAILWAY_ENVIRONMENT;
 const BASE_DIR = process.pkg ? path.dirname(process.execPath) : __dirname;
 const DATA_DIR = path.join(BASE_DIR, 'data');
 const MAX_RECONNECT_ATTEMPTS = 4;
+
+// PINs de protection par room
+const ROOM_PINS = { 'room_1': '0104', 'room_2': '1986', 'room_3': '2211', 'room_13': '0102' };
 const RECONNECT_DELAY_MS = 5000;
 const TOTAL_ROOMS = 20;
 
@@ -311,6 +314,16 @@ wss.on('connection', (ws, req) => {
         return;
     }
 
+    // Vérification PIN
+    if (ROOM_PINS[roomId]) {
+        const pin = params.pin;
+        if (pin !== ROOM_PINS[roomId]) {
+            ws.send(JSON.stringify({ type: 'ERROR', action: 'PIN_REQUIRED', message: 'Code PIN requis ou incorrect' }));
+            ws.close();
+            return;
+        }
+    }
+
     const room = getRoom(roomId);
     if (!room) {
         ws.send(JSON.stringify({ type: 'ERROR', message: 'Room invalide' }));
@@ -440,6 +453,7 @@ app.get('/connect', (req, res) => {
 
     if (!room) return res.status(400).json({ success: false, message: "Room invalide" });
     if (!username) return res.status(400).json({ success: false, message: "Pseudo manquant" });
+    if (ROOM_PINS[roomId] && req.query.pin !== ROOM_PINS[roomId]) return res.status(403).json({ success: false, message: "Code PIN incorrect" });
 
     connectToTikTok(room, username);
     res.json({ success: true, message: 'Connexion lancée vers @' + username });
