@@ -14,8 +14,9 @@ const BASE_DIR = process.pkg ? path.dirname(process.execPath) : __dirname;
 const DATA_DIR = path.join(BASE_DIR, 'data');
 const MAX_RECONNECT_ATTEMPTS = 4;
 
-// PINs de protection par room
+// PINs de protection par room (7777 par défaut)
 const ROOM_PINS = { 'room_1': '0104', 'room_2': '1986', 'room_3': '2211', 'room_13': '0102', 'room_15': '0095' };
+const DEFAULT_PIN = '7777';
 const RECONNECT_DELAY_MS = 5000;
 const TOTAL_ROOMS = 20;
 
@@ -805,18 +806,17 @@ function saveRoomName(roomId) {
 }
 
 var PROTECTED_ROOMS = { 'room_1': '0104', 'room_2': '1986', 'room_3': '2211', 'room_13': '0102', 'room_15': '0095' };
+var DEFAULT_ROOM_PIN = '7777';
 
 function enterRoom(roomId) {
-    if (PROTECTED_ROOMS[roomId]) {
-        var pin = prompt('🔒 Code PIN requis pour ' + roomId + ' :');
-        if (pin === null) return;
-        if (pin !== PROTECTED_ROOMS[roomId]) {
-            alert('❌ Code PIN incorrect');
-            return;
-        }
+    var expectedPin = PROTECTED_ROOMS[roomId] || DEFAULT_ROOM_PIN;
+    var pin = prompt('🔒 Code PIN requis pour ' + roomId + ' :');
+    if (pin === null) return;
+    if (pin !== expectedPin) {
+        alert('❌ Code PIN incorrect');
+        return;
     }
-    var url = '/dashboard?room=' + roomId;
-    if (PROTECTED_ROOMS[roomId]) url += '&pin=' + encodeURIComponent(pin);
+    var url = '/dashboard?room=' + roomId + '&pin=' + encodeURIComponent(pin);
     window.location.href = url;
 }
 
@@ -859,7 +859,8 @@ setInterval(loadGlobalStats, 5000);
 app.get('/dashboard', (req, res) => {
     const roomId = req.query.room;
     if (!roomId) return res.redirect('/');
-    if (ROOM_PINS[roomId] && req.query.pin !== ROOM_PINS[roomId]) return res.redirect('/');
+    var expectedPin = ROOM_PINS[roomId] || DEFAULT_PIN;
+    if (req.query.pin !== expectedPin) return res.redirect('/');
     res.send(DASHBOARD_HTML);
 });
 
