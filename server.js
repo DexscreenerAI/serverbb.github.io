@@ -20,6 +20,125 @@ const DEFAULT_PIN = '7777';
 const RECONNECT_DELAY_MS = 5000;
 const TOTAL_ROOMS = 20;
 
+// ================= CONFIG FIVEM =================
+const FIVEM_API_BASE = 'http://109.205.8.57:9999';
+const FIVEM_JOIN_LINK = 'fivem://connect/cfx.re/join/ylmo5k';
+const CFX_CODE = 'ylmo5k';
+
+let actionsConfig = {};
+const ACTIONS_CONFIG_FILE = path.join(DATA_DIR, 'fivem_actions.json');
+
+const AVAILABLE_ACTIONS = [
+    { id: 'vehicle_panto', name: '🚗 Panto', type: 'vehicle', model: 'panto' },
+    { id: 'vehicle_adder', name: '🏎️ Adder (Supercar)', type: 'vehicle', model: 'adder' },
+    { id: 'vehicle_zentorno', name: '🏎️ Zentorno', type: 'vehicle', model: 'zentorno' },
+    { id: 'vehicle_insurgent', name: '🚙 Insurgent', type: 'vehicle', model: 'insurgent' },
+    { id: 'vehicle_dump', name: '🚛 Dump (Camion géant)', type: 'vehicle', model: 'dump' },
+    { id: 'vehicle_blazer', name: '🏍️ Blazer (Quad)', type: 'vehicle', model: 'blazer' },
+    { id: 'vehicle_bmx', name: '🚲 BMX', type: 'vehicle', model: 'bmx' },
+    { id: 'vehicle_buzzard', name: '🚁 Buzzard (Hélico)', type: 'vehicle', model: 'buzzard' },
+    { id: 'vehicle_hydra', name: '✈️ Hydra (Jet)', type: 'vehicle', model: 'hydra' },
+    { id: 'vehicle_rhino', name: '🛡️ Rhino (Tank)', type: 'vehicle', model: 'rhino' },
+    { id: 'vehicle_bati', name: '🏍️ Bati 801', type: 'vehicle', model: 'bati' },
+    { id: 'vehicle_faggio', name: '🛵 Faggio', type: 'vehicle', model: 'faggio' },
+    { id: 'vehicle_bus', name: '🚌 Bus', type: 'vehicle', model: 'bus' },
+    { id: 'vehicle_stretch', name: '🚗 Limousine', type: 'vehicle', model: 'stretch' },
+    { id: 'vehicle_monster', name: '🚗 Monster Truck', type: 'vehicle', model: 'monster' },
+    { id: 'action_superjump', name: '🚀 Super Jump', type: 'action', endpoint: '/SuperJump' },
+    { id: 'action_resetrampe', name: '🔄 Reset Rampe', type: 'action', endpoint: '/ResetRampe' },
+    { id: 'action_tptop', name: '⬆️ TP Top Rampe', type: 'action', endpoint: '/RampeTpTop' },
+    { id: 'action_spawnmoto', name: '🏍️ Spawn Moto Rampe', type: 'action', endpoint: '/RampeSpawnMoto' },
+    { id: 'prop_barrel', name: '🛢️ Baril explosif', type: 'prop', model: 'prop_barrel_exp_01a' },
+    { id: 'prop_cone', name: '🔶 Cône', type: 'prop', model: 'prop_roadcone02a' },
+    { id: 'prop_ramp', name: '📐 Rampe', type: 'prop', model: 'prop_mp_ramp_01' },
+    { id: 'prop_ball', name: '⚽ Ballon', type: 'prop', model: 'prop_beach_ball_01' },
+    { id: 'prop_tire', name: '🛞 Pneu', type: 'prop', model: 'prop_wheel_01' },
+];
+
+const TIKTOK_GIFTS = [
+    { id: 'rose', name: '🌹 Rose', diamonds: 1 },
+    { id: 'tiktok', name: '✨ TikTok', diamonds: 1 },
+    { id: 'heart', name: '❤️ Cœur', diamonds: 5 },
+    { id: 'ice_cream', name: '🍦 Glace', diamonds: 1 },
+    { id: 'finger_heart', name: '🫰 Finger Heart', diamonds: 5 },
+    { id: 'weights', name: '🏋️ Haltères', diamonds: 1 },
+    { id: 'perfume', name: '💐 Parfum', diamonds: 20 },
+    { id: 'doughnut', name: '🍩 Donut', diamonds: 30 },
+    { id: 'gamepad', name: '🎮 Gamepad', diamonds: 10 },
+    { id: 'cap', name: '🧢 Casquette', diamonds: 99 },
+    { id: 'hand_heart', name: '💕 Hand Heart', diamonds: 100 },
+    { id: 'paper_crane', name: '🦢 Paper Crane', diamonds: 99 },
+    { id: 'tiny_diny', name: '🦖 Tiny Diny', diamonds: 5 },
+    { id: 'star', name: '⭐ Étoile', diamonds: 99 },
+    { id: 'love_you', name: '💗 Love You', diamonds: 25 },
+    { id: 'corgi', name: '🐕 Corgi', diamonds: 30 },
+    { id: 'duck', name: '🦆 Canard', diamonds: 1 },
+    { id: 'birthday_cake', name: '🎂 Gâteau', diamonds: 150 },
+    { id: 'gem', name: '💎 Gem', diamonds: 1 },
+    { id: 'sunglasses', name: '😎 Lunettes', diamonds: 199 },
+    { id: 'applause', name: '👏 Applause', diamonds: 1 },
+    { id: 'galaxy', name: '🌌 Galaxy', diamonds: 1000 },
+    { id: 'universe', name: '🌍 Universe', diamonds: 34999 },
+    { id: 'lion', name: '🦁 Lion', diamonds: 29999 },
+    { id: 'rocket', name: '🚀 Rocket', diamonds: 20000 },
+    { id: 'airplane', name: '✈️ Avion', diamonds: 4888 },
+    { id: 'sports_car', name: '🏎️ Sports Car', diamonds: 7000 },
+    { id: 'train', name: '🚂 Train', diamonds: 899 },
+    { id: 'rosa_nebula', name: '🌸 Rosa Nebula', diamonds: 1500 },
+    { id: 'whale', name: '🐋 Whale', diamonds: 2150 },
+];
+
+function loadActionsConfig() {
+    if (!useFileStorage) return;
+    try {
+        if (fs.existsSync(ACTIONS_CONFIG_FILE)) {
+            actionsConfig = JSON.parse(fs.readFileSync(ACTIONS_CONFIG_FILE, 'utf-8'));
+            console.log('🎮 Config FiveM chargée');
+        }
+    } catch (e) { console.warn('⚠️ Erreur chargement config FiveM:', e.message); }
+}
+
+function saveActionsConfig() {
+    if (!useFileStorage) return;
+    try { fs.writeFileSync(ACTIONS_CONFIG_FILE, JSON.stringify(actionsConfig, null, 2), 'utf-8'); } catch (e) {}
+}
+
+async function executeFiveM(action, quantity) {
+    try {
+        let fiveUrl = FIVEM_API_BASE;
+        if (action.type === 'vehicle' || action.type === 'custom_vehicle') fiveUrl += '/' + action.model + '/' + quantity;
+        else if (action.type === 'prop' || action.type === 'custom_prop') fiveUrl += '/prop/' + action.model + '/' + quantity;
+        else if (action.type === 'action') fiveUrl += action.endpoint;
+        console.log('🎮 FiveM Action:', fiveUrl);
+        await fetch(fiveUrl, { method: 'GET' });
+        return { success: true, url: fiveUrl };
+    } catch (error) {
+        console.error('❌ FiveM Error:', error.message);
+        return { success: false, error: error.message };
+    }
+}
+
+async function handleGiftAction(roomId, giftName, giftData) {
+    const roomConfig = actionsConfig[roomId];
+    if (!roomConfig || !roomConfig.enabled) return;
+    const giftNameLower = giftName.toLowerCase();
+    const mapping = roomConfig.mappings && roomConfig.mappings.find(function(m) {
+        return m.giftName.toLowerCase() === giftNameLower || m.giftId === giftNameLower;
+    });
+    if (!mapping) return;
+    const action = AVAILABLE_ACTIONS.find(function(a) { return a.id === mapping.actionId; });
+    if (!action && !mapping.customAction) return;
+    const actionToExecute = action || mapping.customAction;
+    const quantity = mapping.quantity || 1;
+    console.log('🎁 ' + roomId + ': ' + giftName + ' → ' + actionToExecute.name + ' x' + quantity);
+    const result = await executeFiveM(actionToExecute, quantity);
+    const room = rooms.get(roomId);
+    if (room) {
+        sendToRoom(room, 'INFO', 'FIVEM_ACTION', { gift: giftName, action: actionToExecute.name, quantity: quantity, success: result.success, user: giftData.user });
+    }
+    return result;
+}
+
 // ================= INITIALISATION =================
 const app = express();
 app.use(cors());
@@ -73,6 +192,7 @@ function saveRoomsConfig() {
 }
 
 loadRoomsConfig();
+loadActionsConfig();
 
 // ================= MULTI-SESSIONS : ROOMS =================
 const rooms = new Map();
@@ -277,6 +397,7 @@ function connectToTikTok(room, username, isReconnect = false) {
         const giftData = { user: data.uniqueId, profilePictureUrl: data.profilePictureUrl, count: totalCoins, giftName: data.giftName, diamondCount: totalCoins };
         sendToRoom(room, 'ACTION', 'shoot_balloon', giftData);
         recordGift(room, giftData);
+        handleGiftAction(room.id, data.giftName, giftData);
     });
 
     room.connection.on('like', (data) => {
@@ -972,6 +1093,7 @@ body{background:var(--bg);color:var(--txt);font-family:'Outfit',sans-serif;min-h
         <input type="text" id="username" placeholder="@pseudo_en_live" spellcheck="false"/>
         <button class="btn-co" id="btnCo" onclick="doConnect()">Connexion</button>
         <button class="btn-dc" id="btnDc" onclick="doDisconnect()" style="display:none;">Déconnexion</button>
+        <button class="btn-co" onclick="goFiveM()" style="background:linear-gradient(135deg,#ff0033,#cc0029);">🎮 FiveM</button>
     </div>
 </div>
 <div class="stats-bar">
@@ -1060,6 +1182,7 @@ function setConn(on,user){var dot=document.getElementById('dot'),badge=document.
 
 function doConnect(){var inp=document.getElementById('username'),btn=document.getElementById('btnCo'),u=inp.value.trim();if(!u){inp.focus();return;}btn.disabled=true;btn.textContent='...';fetch('/connect?username='+encodeURIComponent(u)+'&room='+ROOM+'&pin='+encodeURIComponent(PIN)).then(function(r){return r.json()}).then(function(d){if(!d.success){setConn(false);document.getElementById('stxt').textContent='Erreur';}}).catch(function(){setConn(false);btn.disabled=false;btn.textContent='Connexion';});}
 function doDisconnect(){fetch('/disconnect?room='+ROOM).then(function(r){return r.json()}).then(function(){setConn(false);});}
+function goFiveM(){window.open('/config?room='+ROOM+'&pin='+encodeURIComponent(PIN),'_blank');}
 document.getElementById('username').addEventListener('keydown',function(e){if(e.key==='Enter')doConnect();});
 
 function searchViewers(q){var res=document.getElementById('rfResults');if(!q){res.classList.remove('open');return;}q=q.toLowerCase().replace('@','');var all={};Object.values(S.coinsBoard).forEach(function(e){all[e.user]=e.profilePictureUrl||'';});Object.values(S.likesBoard).forEach(function(e){if(!all[e.user])all[e.user]=e.profilePictureUrl||'';});var matches=Object.keys(all).filter(function(u){return u.toLowerCase().indexOf(q)!==-1}).slice(0,6);if(!matches.length){res.classList.remove('open');return;}var h='';matches.forEach(function(u){h+='<div class="rf-item" onclick="selectViewer(\\''+esc(u)+'\\',\\''+safePic(all[u])+'\\')"><img src="'+safePic(all[u])+'" onerror="this.style.display=\\'none\\'"/><span>@'+esc(u)+'</span></div>';});res.innerHTML=h;res.classList.add('open');}
@@ -1080,6 +1203,83 @@ initWS();
 </script>
 </body>
 </html>`;
+
+// ================= ROUTES API FIVEM =================
+app.get('/api/fivem/actions', (req, res) => {
+    res.json({ actions: AVAILABLE_ACTIONS, gifts: TIKTOK_GIFTS });
+});
+
+app.get('/api/fivem/config/:roomId', (req, res) => {
+    const config = actionsConfig[req.params.roomId] || { enabled: false, mappings: [] };
+    res.json(config);
+});
+
+app.post('/api/fivem/config/:roomId', (req, res) => {
+    const { roomId } = req.params;
+    const { enabled, mappings, fivemApiBase } = req.body;
+    actionsConfig[roomId] = { enabled: enabled !== false, mappings: mappings || [], fivemApiBase: fivemApiBase || FIVEM_API_BASE, updatedAt: new Date().toISOString() };
+    saveActionsConfig();
+    res.json({ success: true, config: actionsConfig[roomId] });
+});
+
+app.post('/api/fivem/mapping/:roomId', (req, res) => {
+    const { roomId } = req.params;
+    const { giftName, giftId, actionId, quantity, customAction } = req.body;
+    if (!actionsConfig[roomId]) actionsConfig[roomId] = { enabled: true, mappings: [] };
+    const existingIndex = actionsConfig[roomId].mappings.findIndex(m => m.giftId === giftId || m.giftName === giftName);
+    const newMapping = { giftName, giftId, actionId, quantity: quantity || 1, customAction, createdAt: new Date().toISOString() };
+    if (existingIndex >= 0) actionsConfig[roomId].mappings[existingIndex] = newMapping;
+    else actionsConfig[roomId].mappings.push(newMapping);
+    saveActionsConfig();
+    res.json({ success: true, mapping: newMapping });
+});
+
+app.delete('/api/fivem/mapping/:roomId/:giftId', (req, res) => {
+    const { roomId, giftId } = req.params;
+    if (actionsConfig[roomId]) {
+        actionsConfig[roomId].mappings = actionsConfig[roomId].mappings.filter(m => m.giftId !== giftId);
+        saveActionsConfig();
+    }
+    res.json({ success: true });
+});
+
+app.post('/api/fivem/test', async (req, res) => {
+    const { actionId, quantity, customAction } = req.body;
+    let action = AVAILABLE_ACTIONS.find(a => a.id === actionId);
+    if (!action && customAction) action = customAction;
+    if (!action) return res.status(400).json({ success: false, message: 'Action non trouvée' });
+    const result = await executeFiveM(action, quantity || 1);
+    res.json(result);
+});
+
+app.get('/api/fivem/status', async (req, res) => {
+    try {
+        const response = await fetch('https://servers-frontend.fivem.net/api/servers/single/' + CFX_CODE);
+        const data = await response.json();
+        res.json({ online: true, players: data.Data?.clients || 0, maxPlayers: data.Data?.sv_maxclients || 32, hostname: data.Data?.hostname || 'Chasseur Chaos', joinLink: FIVEM_JOIN_LINK });
+    } catch (error) {
+        res.json({ online: false, players: 0, maxPlayers: 32, joinLink: FIVEM_JOIN_LINK });
+    }
+});
+
+// ================= PAGE REJOINDRE FIVEM =================
+app.get('/join', (req, res) => { res.send(FIVEM_JOIN_HTML); });
+
+const FIVEM_JOIN_HTML = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Rejoindre Chasseur Chaos | FiveM</title><link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&display=swap" rel="stylesheet"><style>*{margin:0;padding:0;box-sizing:border-box}:root{--bg:#0a0a0f;--card:#12121a;--border:#1e1e2e;--red:#ff0033;--gold:#ffd700;--txt:#f0f0f5;--txt2:#6e6e80}body{background:var(--bg);color:var(--txt);font-family:'Outfit',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}.container{text-align:center;max-width:500px}h1{font-size:48px;font-weight:900;text-transform:uppercase;letter-spacing:4px;margin-bottom:10px;background:linear-gradient(135deg,var(--red),#ff6b6b);-webkit-background-clip:text;-webkit-text-fill-color:transparent}.subtitle{font-size:16px;color:var(--txt2);margin-bottom:40px;letter-spacing:2px}.status-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:30px;margin-bottom:30px}.status-row{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:20px}.status-dot{width:14px;height:14px;border-radius:50%;background:#22c55e;box-shadow:0 0 20px #22c55e;animation:pulse 2s infinite}.status-dot.offline{background:#ef4444;box-shadow:0 0 20px #ef4444}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}.status-text{font-size:18px;font-weight:600}.players{font-size:42px;font-weight:900;color:var(--gold);margin-bottom:5px}.players-label{font-size:12px;color:var(--txt2);text-transform:uppercase;letter-spacing:2px}.btn-join{display:inline-block;padding:20px 60px;background:linear-gradient(135deg,var(--red),#cc0029);border:none;border-radius:16px;color:#fff;font-family:'Outfit',sans-serif;font-size:20px;font-weight:800;text-transform:uppercase;letter-spacing:3px;text-decoration:none;cursor:pointer;transition:all .3s;box-shadow:0 10px 40px rgba(255,0,51,.4)}.btn-join:hover{transform:translateY(-4px) scale(1.02);box-shadow:0 15px 50px rgba(255,0,51,.6)}.note{margin-top:20px;font-size:13px;color:var(--txt2)}.note a{color:var(--red);text-decoration:none}.features{display:flex;gap:20px;justify-content:center;margin-top:40px;flex-wrap:wrap}.feature{padding:15px 25px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:12px;font-size:14px}.feature-icon{font-size:24px;margin-bottom:8px}</style></head><body><div class="container"><h1>Chasseur Chaos</h1><p class="subtitle">Serveur FiveM Interactif TikTok LIVE</p><div class="status-card"><div class="status-row"><div class="status-dot" id="statusDot"></div><span class="status-text" id="statusText">Vérification...</span></div><div class="players" id="playerCount">-</div><div class="players-label">Joueurs en ligne</div></div><a href="fivem://connect/cfx.re/join/ylmo5k" class="btn-join">🎮 Rejoindre le Serveur</a><p class="note">Nécessite <a href="https://fivem.net/" target="_blank">FiveM</a> installé sur ton PC</p><div class="features"><div class="feature"><div class="feature-icon">🎁</div><div>Cadeaux = Actions</div></div><div class="feature"><div class="feature-icon">🚗</div><div>Spawn Véhicules</div></div><div class="feature"><div class="feature-icon">💥</div><div>Chaos Total</div></div></div></div><script>async function checkStatus(){try{const res=await fetch('/api/fivem/status');const data=await res.json();const dot=document.getElementById('statusDot');const text=document.getElementById('statusText');const count=document.getElementById('playerCount');if(data.online){dot.classList.remove('offline');text.textContent='Serveur en ligne';count.textContent=data.players+'/'+data.maxPlayers;}else{dot.classList.add('offline');text.textContent='Serveur hors ligne';count.textContent='-';}}catch(e){document.getElementById('statusDot').classList.add('offline');document.getElementById('statusText').textContent='Status inconnu';}}checkStatus();setInterval(checkStatus,30000);</script></body></html>`;
+
+// ================= PAGE CONFIG FIVEM =================
+app.get('/config', (req, res) => {
+    const roomId = req.query.room;
+    const pin = req.query.pin || '';
+    if (!roomId) return res.redirect('/');
+    const expectedPin = ROOM_PINS[roomId] || DEFAULT_PIN;
+    if (pin !== expectedPin) return res.redirect('/');
+    res.send(FIVEM_CONFIG_HTML);
+});
+
+const FIVEM_CONFIG_HTML = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Config FiveM</title><link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"><style>*{margin:0;padding:0;box-sizing:border-box}:root{--bg:#0a0a0f;--card:#12121a;--border:#1e1e2e;--pk:#fe2c55;--cy:#25f4ee;--txt:#f0f0f5;--txt2:#6e6e80;--green:#22c55e;--red:#ff0033}body{background:var(--bg);color:var(--txt);font-family:'Outfit',sans-serif;min-height:100vh;padding:20px}.container{max-width:1200px;margin:0 auto}.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:30px;flex-wrap:wrap;gap:15px}.header h1{font-size:24px;font-weight:800}.nav-btns{display:flex;gap:10px}.btn{padding:10px 20px;border:none;border-radius:10px;font-family:'Outfit',sans-serif;font-weight:600;font-size:13px;cursor:pointer;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;gap:6px}.btn-back{background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--txt2)}.btn-back:hover{background:rgba(255,255,255,.1);color:var(--txt)}.btn-primary{background:linear-gradient(135deg,var(--cy),#1ad4d4);color:#000}.btn-primary:hover{transform:translateY(-2px)}.btn-success{background:linear-gradient(135deg,var(--green),#16a34a);color:#fff}.toggle-section{display:flex;align-items:center;gap:15px;padding:20px;background:var(--card);border:1px solid var(--border);border-radius:16px;margin-bottom:20px}.toggle-label{font-weight:600;flex:1}.toggle{position:relative;width:60px;height:32px;cursor:pointer}.toggle input{display:none}.toggle-slider{position:absolute;inset:0;background:rgba(255,255,255,.1);border-radius:20px;transition:.3s}.toggle-slider::before{content:'';position:absolute;width:26px;height:26px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.3s}.toggle input:checked+.toggle-slider{background:var(--green)}.toggle input:checked+.toggle-slider::before{transform:translateX(28px)}.config-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}@media(max-width:900px){.config-grid{grid-template-columns:1fr}}.panel{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden}.panel-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}.panel-title{font-weight:700;font-size:16px}.panel-count{font-family:'JetBrains Mono',monospace;font-size:12px;padding:4px 10px;background:rgba(255,255,255,.05);border-radius:6px;color:var(--txt2)}.panel-body{padding:16px;max-height:400px;overflow-y:auto}.mapping-item{display:flex;align-items:center;gap:12px;padding:12px;background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:12px;margin-bottom:10px}.mapping-item:hover{border-color:rgba(37,244,238,.2)}.mapping-gift{display:flex;align-items:center;gap:8px;min-width:140px}.mapping-gift .name{font-weight:600;font-size:13px}.mapping-arrow{color:var(--txt2);font-size:18px}.mapping-action{flex:1;display:flex;align-items:center;gap:8px}.mapping-action .name{font-weight:600;font-size:13px}.mapping-qty{font-family:'JetBrains Mono',monospace;font-size:12px;padding:4px 10px;background:rgba(37,244,238,.1);border-radius:6px;color:var(--cy)}.mapping-delete{padding:8px;background:none;border:none;color:var(--txt2);cursor:pointer;border-radius:6px;transition:.2s;font-size:14px}.mapping-delete:hover{background:rgba(239,68,68,.1);color:#ef4444}.add-mapping{padding:20px;border-top:1px solid var(--border)}.add-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}.form-group{display:flex;flex-direction:column;gap:6px;flex:1;min-width:150px}.form-group label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--txt2)}.form-group select,.form-group input{padding:12px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,.03);color:var(--txt);font-family:'Outfit',sans-serif;font-size:13px;outline:none}.form-group select:focus,.form-group input:focus{border-color:var(--cy)}.form-group select option{background:var(--card);color:var(--txt)}.action-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}.action-item{display:flex;align-items:center;gap:8px;padding:12px;background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:10px;font-size:13px}.test-section{margin-top:20px;padding:20px;background:var(--card);border:1px solid var(--border);border-radius:16px}.test-section h3{margin-bottom:15px;font-size:16px}.test-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}.toast{position:fixed;bottom:20px;right:20px;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:500;opacity:0;transform:translateY(10px);transition:.3s;z-index:200}.toast.show{opacity:1;transform:translateY(0)}.toast.success{background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);color:var(--green)}.toast.error{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#ef4444}.status-badge{display:flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);border-radius:8px;font-size:12px;color:var(--green)}.status-badge.offline{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.2);color:#ef4444}.status-badge .dot{width:8px;height:8px;border-radius:50%;background:currentColor;animation:pulse 2s infinite}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}</style></head><body><div class="container"><div class="header"><h1>🎮 Config FiveM - <span id="roomName">Room</span></h1><div class="nav-btns"><div class="status-badge" id="fivemStatus"><span class="dot"></span><span id="fivemStatusText">Vérification...</span></div><a href="/" class="btn btn-back">← Rooms</a><button class="btn btn-primary" onclick="goToDashboard()">Dashboard →</button></div></div><div class="toggle-section"><div class="toggle-label"><div style="font-size:16px">⚡ Activer l'intégration FiveM</div><div style="font-size:12px;color:var(--txt2);margin-top:4px">Les cadeaux TikTok déclencheront des actions dans GTA</div></div><label class="toggle"><input type="checkbox" id="enableToggle" onchange="toggleEnabled()"><span class="toggle-slider"></span></label></div><div class="config-grid"><div class="panel"><div class="panel-header"><div class="panel-title">🎁 Mappings Configurés</div><div class="panel-count" id="mappingCount">0</div></div><div class="panel-body" id="mappingsList"><div style="text-align:center;padding:40px;color:var(--txt2)"><div style="font-size:32px;margin-bottom:10px">🎯</div><div>Aucun mapping configuré</div></div></div><div class="add-mapping"><div class="add-row"><div class="form-group"><label>Cadeau TikTok</label><select id="selectGift"></select></div><div class="form-group"><label>Action FiveM</label><select id="selectAction"></select></div><div class="form-group" style="flex:0 0 80px"><label>Quantité</label><input type="number" id="inputQty" value="1" min="1" max="10"></div><button class="btn btn-success" onclick="addMapping()">+ Ajouter</button></div></div></div><div class="panel"><div class="panel-header"><div class="panel-title">⚡ Actions Disponibles</div><div class="panel-count" id="actionCount">0</div></div><div class="panel-body"><div class="action-list" id="actionsList"></div></div></div></div><div class="test-section"><h3>🧪 Tester une action</h3><div class="test-row"><div class="form-group" style="flex:0 0 200px"><label>Action à tester</label><select id="testAction"></select></div><div class="form-group" style="flex:0 0 80px"><label>Quantité</label><input type="number" id="testQty" value="1" min="1" max="5"></div><button class="btn btn-primary" onclick="testAction()" style="margin-top:auto">🚀 Tester</button></div></div></div><div class="toast" id="toast"></div><script>var params=new URLSearchParams(window.location.search);var ROOM=params.get('room');var PIN=params.get('pin')||'';if(!ROOM)window.location.href='/';var availableActions=[],tiktokGifts=[],currentConfig={enabled:false,mappings:[]};async function init(){var res=await fetch('/api/fivem/actions');var data=await res.json();availableActions=data.actions;tiktokGifts=data.gifts;var configRes=await fetch('/api/fivem/config/'+ROOM);currentConfig=await configRes.json();var roomsRes=await fetch('/api/rooms');var roomsData=await roomsRes.json();var roomInfo=roomsData.rooms.find(function(r){return r.id===ROOM});if(roomInfo)document.getElementById('roomName').textContent=roomInfo.name;renderAll();checkFiveMStatus();}function renderAll(){document.getElementById('enableToggle').checked=currentConfig.enabled;var actionsHtml='';availableActions.forEach(function(a){actionsHtml+='<div class="action-item"><span>'+a.name+'</span></div>';});document.getElementById('actionsList').innerHTML=actionsHtml;document.getElementById('actionCount').textContent=availableActions.length;var giftOptions='<option value="">Choisir...</option>';tiktokGifts.forEach(function(g){giftOptions+='<option value="'+g.id+'">'+g.name+' ('+g.diamonds+'💎)</option>';});document.getElementById('selectGift').innerHTML=giftOptions;var actionOptions='<option value="">Choisir...</option>';availableActions.forEach(function(a){actionOptions+='<option value="'+a.id+'">'+a.name+'</option>';});document.getElementById('selectAction').innerHTML=actionOptions;document.getElementById('testAction').innerHTML=actionOptions;renderMappings();}function renderMappings(){var mappings=currentConfig.mappings||[];document.getElementById('mappingCount').textContent=mappings.length;if(mappings.length===0){document.getElementById('mappingsList').innerHTML='<div style="text-align:center;padding:40px;color:var(--txt2)"><div style="font-size:32px;margin-bottom:10px">🎯</div><div>Aucun mapping configuré</div></div>';return;}var html='';mappings.forEach(function(m){var gift=tiktokGifts.find(function(g){return g.id===m.giftId})||{name:m.giftName||m.giftId};var action=availableActions.find(function(a){return a.id===m.actionId})||{name:m.actionId};html+='<div class="mapping-item"><div class="mapping-gift"><span class="name">'+gift.name+'</span></div><span class="mapping-arrow">→</span><div class="mapping-action"><span class="name">'+action.name+'</span></div><span class="mapping-qty">x'+(m.quantity||1)+'</span><button class="mapping-delete" onclick="deleteMapping(\\''+m.giftId+'\\')">🗑️</button></div>';});document.getElementById('mappingsList').innerHTML=html;}async function toggleEnabled(){currentConfig.enabled=document.getElementById('enableToggle').checked;await saveConfig();toast('success',currentConfig.enabled?'✅ FiveM activé':'⏸️ FiveM désactivé');}async function addMapping(){var giftId=document.getElementById('selectGift').value;var actionId=document.getElementById('selectAction').value;var qty=parseInt(document.getElementById('inputQty').value)||1;if(!giftId||!actionId){toast('error','Sélectionne un cadeau et une action');return;}var gift=tiktokGifts.find(function(g){return g.id===giftId});await fetch('/api/fivem/mapping/'+ROOM,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({giftId:giftId,giftName:gift?gift.name:giftId,actionId:actionId,quantity:qty})});var configRes=await fetch('/api/fivem/config/'+ROOM);currentConfig=await configRes.json();renderMappings();document.getElementById('selectGift').value='';document.getElementById('selectAction').value='';document.getElementById('inputQty').value='1';toast('success','✅ Mapping ajouté');}async function deleteMapping(giftId){await fetch('/api/fivem/mapping/'+ROOM+'/'+giftId,{method:'DELETE'});var configRes=await fetch('/api/fivem/config/'+ROOM);currentConfig=await configRes.json();renderMappings();toast('success','🗑️ Mapping supprimé');}async function saveConfig(){await fetch('/api/fivem/config/'+ROOM,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(currentConfig)});}async function testAction(){var actionId=document.getElementById('testAction').value;var qty=parseInt(document.getElementById('testQty').value)||1;if(!actionId){toast('error','Sélectionne une action');return;}toast('success','🚀 Test envoyé...');var res=await fetch('/api/fivem/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actionId:actionId,quantity:qty})});var data=await res.json();if(data.success)toast('success','✅ Action exécutée !');else toast('error','❌ Erreur: '+(data.error||'Serveur FiveM injoignable'));}async function checkFiveMStatus(){try{var res=await fetch('/api/fivem/status');var data=await res.json();var badge=document.getElementById('fivemStatus');var text=document.getElementById('fivemStatusText');if(data.online){badge.classList.remove('offline');text.textContent='FiveM: '+data.players+'/'+data.maxPlayers;}else{badge.classList.add('offline');text.textContent='FiveM: Hors ligne';}}catch(e){document.getElementById('fivemStatus').classList.add('offline');document.getElementById('fivemStatusText').textContent='FiveM: Inconnu';}}function goToDashboard(){window.location.href='/dashboard?room='+ROOM+'&pin='+encodeURIComponent(PIN);}function toast(type,msg){var t=document.getElementById('toast');t.className='toast '+type;t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2500);}init();setInterval(checkFiveMStatus,30000);</script></body></html>`;
+
+console.log('🎮 Module FiveM chargé');
 
 // ================= DÉMARRAGE =================
 server.listen(PORT, '0.0.0.0', () => {
