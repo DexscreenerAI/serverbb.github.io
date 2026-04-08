@@ -103,9 +103,9 @@ function saveActionsConfig() {
     try { fs.writeFileSync(ACTIONS_CONFIG_FILE, JSON.stringify(actionsConfig, null, 2), 'utf-8'); } catch (e) {}
 }
 
-async function executeFiveM(action, quantity) {
+async function executeFiveM(action, quantity, apiBase) {
     try {
-        let fiveUrl = FIVEM_API_BASE;
+        let fiveUrl = apiBase || FIVEM_API_BASE;
         if (action.type === 'vehicle' || action.type === 'custom_vehicle') fiveUrl += '/' + action.model + '/' + quantity;
         else if (action.type === 'prop' || action.type === 'custom_prop') fiveUrl += '/prop/' + action.model + '/' + quantity;
         else if (action.type === 'action') fiveUrl += action.endpoint;
@@ -121,9 +121,11 @@ async function executeFiveM(action, quantity) {
 async function handleGiftAction(roomId, giftName, giftData) {
     const roomConfig = actionsConfig[roomId];
     if (!roomConfig || !roomConfig.enabled) return;
-    const giftNameLower = giftName.toLowerCase();
+    const giftNameLower = (giftName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     const mapping = roomConfig.mappings && roomConfig.mappings.find(function(m) {
-        return m.giftName.toLowerCase() === giftNameLower || m.giftId === giftNameLower;
+        var mName = (m.giftName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        var mId = (m.giftId || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        return mName === giftNameLower || mId === giftNameLower || mName.includes(giftNameLower) || giftNameLower.includes(mId);
     });
     if (!mapping) return;
     const action = AVAILABLE_ACTIONS.find(function(a) { return a.id === mapping.actionId; });
@@ -131,7 +133,8 @@ async function handleGiftAction(roomId, giftName, giftData) {
     const actionToExecute = action || mapping.customAction;
     const quantity = mapping.quantity || 1;
     console.log('🎁 ' + roomId + ': ' + giftName + ' → ' + actionToExecute.name + ' x' + quantity);
-    const result = await executeFiveM(actionToExecute, quantity);
+    const customBase = roomConfig.fivemApiBase || FIVEM_API_BASE;
+    const result = await executeFiveM(actionToExecute, quantity, customBase);
     const room = rooms.get(roomId);
     if (room) {
         sendToRoom(room, 'INFO', 'FIVEM_ACTION', { gift: giftName, action: actionToExecute.name, quantity: quantity, success: result.success, user: giftData.user });
