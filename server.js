@@ -15,7 +15,7 @@ const DATA_DIR = path.join(BASE_DIR, 'data');
 const MAX_RECONNECT_ATTEMPTS = 4;
 
 // PINs de protection par room (7777 par défaut)
-const ROOM_PINS = { 'room_1': '0104', 'room_2': '1986', 'room_3': '2211', 'room_10': '0910', 'room_13': '0102', 'room_15': '0095', 'room_19': '1203', 'room_20': '0410' };
+const ROOM_PINS = { 'room_1': '0104', 'room_2': '1986', 'room_3': '2211', 'room_10': '0910', 'room_13': '0102', 'room_15': '0095', 'room_18': '2026', 'room_19': '1203', 'room_20': '0410' };
 const DEFAULT_PIN = '7777';
 const RECONNECT_DELAY_MS = 5000;
 const TOTAL_ROOMS = 20;
@@ -805,7 +805,7 @@ function saveRoomName(roomId) {
     });
 }
 
-var PROTECTED_ROOMS = { 'room_1': '0104', 'room_2': '1986', 'room_3': '2211', 'room_10': '0910', 'room_13': '0102', 'room_15': '0095', 'room_19': '1203', 'room_20': '0410' };
+var PROTECTED_ROOMS = { 'room_1': '0104', 'room_2': '1986', 'room_3': '2211', 'room_10': '0910', 'room_13': '0102', 'room_15': '0095', 'room_18': '2026', 'room_19': '1203', 'room_20': '0410' };
 var DEFAULT_ROOM_PIN = '7777';
 
 function enterRoom(roomId) {
